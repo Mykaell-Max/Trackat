@@ -19,10 +19,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    if (!username || !email || !password) {
-      Alert.alert("Erro", "Preencha todos os campos");
+    if (!email || !password) {
+      Alert.alert("Erro", "Preencha email e senha");
       return;
     }
 
@@ -31,9 +32,10 @@ export default function LoginScreen() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       
+      const displayName = username.trim() || email.split("@")[0];
       await setDoc(doc(db, "users", userCredential.user.uid), {
         uid: userCredential.user.uid,
-        username: username.trim(),
+        username: displayName,
         email: email.trim(),
         updatedAt: Date.now()
       }, { merge: true });
@@ -42,9 +44,10 @@ export default function LoginScreen() {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
           
+          const displayName = username.trim() || email.split("@")[0];
           await setDoc(doc(db, "users", userCredential.user.uid), {
             uid: userCredential.user.uid,
-            username: username.trim(),
+            username: displayName,
             email: email.trim(),
             createdAt: Date.now(),
             updatedAt: Date.now()
@@ -83,7 +86,7 @@ export default function LoginScreen() {
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="Nome de usuário"
+            placeholder="Nome de usuário (opcional)"
             value={username}
             onChangeText={setUsername}
             autoCapitalize="words"
@@ -102,15 +105,24 @@ export default function LoginScreen() {
             editable={!loading}
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!loading}
-          />
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Senha"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              editable={!loading}
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPassword(!showPassword)}
+              disabled={loading}
+            >
+              <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁️"}</Text>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -179,6 +191,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    fontSize: 16,
+  },
+  eyeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  eyeIcon: {
+    fontSize: 20,
   },
   button: {
     backgroundColor: "#007AFF",
