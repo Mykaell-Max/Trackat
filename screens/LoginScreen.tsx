@@ -74,8 +74,11 @@ export default function LoginScreen() {
       style={styles.container}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>📍</Text>
-        <Text style={styles.appName}>LocalApp</Text>
+        <View style={styles.logoContainer}>
+          <Text style={styles.logoIcon}>📍</Text>
+          <Text style={styles.appName}>Trackat</Text>
+          <Text style={styles.tagline}>Rastreamento em tempo real</Text>
+        </View>
 
         <View style={styles.form}>
           <TextInput
@@ -129,52 +132,73 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f9fa",
   },
   content: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 30,
+    padding: 24,
   },
-  title: {
-    fontSize: 60,
-    marginBottom: 10,
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: 48,
+  },
+  logoIcon: {
+    fontSize: 72,
+    marginBottom: 8,
   },
   appName: {
-    fontSize: 28,
-    fontWeight: "300",
-    color: "#333",
-    marginBottom: 50,
-    letterSpacing: 2,
+    fontSize: 36,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  tagline: {
+    fontSize: 14,
+    color: "#6c757d",
+    letterSpacing: 0.5,
+    fontWeight: "400",
   },
   form: {
     width: "100%",
+    maxWidth: 380,
   },
   input: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff",
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginBottom: 15,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: "#e9ecef",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   button: {
     backgroundColor: "#007AFF",
-    paddingVertical: 15,
-    borderRadius: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 8,
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 1,
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
 });
