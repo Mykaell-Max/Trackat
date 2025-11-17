@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
@@ -10,10 +11,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Animated,
+  View
 } from "react-native";
-import { LinearGradient } from 'expo-linear-gradient';
 import { auth, db } from "../firebase";
 
 export default function LoginScreen() {
