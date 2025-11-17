@@ -1,6 +1,6 @@
 # 📍 Trackat
 
-**Trackat** é um aplicativo mobile open source para rastreamento de localização em tempo real e comunicação entre grupos de amigos ou famílias.
+**Trackat** é um aplicativo mobile open source para rastreamento de localização em tempo real e comunicação entre grupos de amigos, famílias ou equipes de trabalho.
 
 ## ✨ Funcionalidades
 

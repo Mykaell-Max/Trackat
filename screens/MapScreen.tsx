@@ -7,8 +7,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Animated,
+  Dimensions,
 } from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import Loading from "../components/Loading";
 import UserMarker from "../components/UserMarker";
 import { auth } from "../firebase";
@@ -27,11 +31,13 @@ import {
 } from "../services/locationService";
 import { listenToAllUsers, UserData } from "../services/usersService";
 
-const ALERT_OPTIONS: { type: AlertType; label: string; emoji: string }[] = [
-  { type: "ajuda", label: "Preciso de ajuda", emoji: "🆘" },
-  { type: "bora beber", label: "Bora beber", emoji: "🍻" },
-  { type: "socorro", label: "Socorro! Emergência", emoji: "🚨" },
-  { type: "venham aqui", label: "Venham aqui", emoji: "📍" },
+const { width } = Dimensions.get('window');
+
+const ALERT_OPTIONS: { type: AlertType; label: string; emoji: string; color: string }[] = [
+  { type: "ajuda", label: "Preciso de ajuda", emoji: "🆘", color: "#F59E0B" },
+  { type: "bora beber", label: "Bora beber", emoji: "🍻", color: "#10B981" },
+  { type: "socorro", label: "Socorro! Emergência", emoji: "🚨", color: "#EF4444" },
+  { type: "venham aqui", label: "Venham aqui", emoji: "📍", color: "#8B5CF6" },
 ];
 
 export default function MapScreen() {
@@ -48,6 +54,7 @@ export default function MapScreen() {
   const stopTrackingRef = useRef<(() => void) | null>(null);
   const unsubscribeUsersRef = useRef<(() => void) | null>(null);
   const unsubscribeAlertsRef = useRef<(() => void) | null>(null);
+  const fabScale = useRef(new Animated.Value(1)).current;
 
   const updateUserPositions = async () => {
     if (!mapRef.current) return;
@@ -63,6 +70,7 @@ export default function MapScreen() {
           });
           positions[user.uid] = { x: point.x, y: point.y - 35 };
         } catch (error) {
+          // Silent error
         }
       }
     }
@@ -185,6 +193,20 @@ export default function MapScreen() {
     }
   };
 
+  const animateFabPress = () => {
+    Animated.sequence([
+      Animated.spring(fabScale, {
+        toValue: 0.9,
+        useNativeDriver: true,
+      }),
+      Animated.spring(fabScale, {
+        toValue: 1,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    setShowAlertModal(true);
+  };
+
   if (loading) {
     return <Loading message="Inicializando mapa..." />;
   }
@@ -206,7 +228,7 @@ export default function MapScreen() {
         }
         showsUserLocation
         showsMyLocationButton={false}
-        onRegionChangeComplete={updateUserPositions}
+        onRegionChange={updateUserPositions}
       >
         {users.map((user) => (
           <UserMarker
@@ -233,42 +255,72 @@ export default function MapScreen() {
               position: "absolute",
               left: position.x - 40,
               top: position.y,
-              backgroundColor: isCurrentUser ? "#007AFF" : "#FF3B30",
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 6,
-              borderWidth: 1,
+              backgroundColor: isCurrentUser ? "#8B5CF6" : "#EC4899",
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 12,
+              borderWidth: 2,
               borderColor: "#fff",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.3,
+              shadowRadius: 5,
+              elevation: 6,
             }}
             pointerEvents="none"
           >
-            <Text style={{ color: "#fff", fontSize: 11, fontWeight: "bold" }}>
+            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700", letterSpacing: 0.3 }}>
               {displayName}
             </Text>
           </View>
         );
       })}
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.buttonEmoji}>🚪</Text>
-      </TouchableOpacity>
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleLogout} activeOpacity={0.7}>
+          <LinearGradient
+            colors={['#F43F5E', '#E11D48']}
+            style={styles.buttonGradient}
+          >
+            <Text style={styles.buttonIcon}>🚪</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.centerButton} onPress={centerOnMyLocation}>
-        <Text style={styles.buttonEmoji}>📍</Text>
-      </TouchableOpacity>
-
-      <View style={styles.infoBar}>
-        <Text style={styles.infoText}>
-          👥 {users.length} {users.length === 1 ? "pessoa" : "pessoas"} online
-        </Text>
+        <TouchableOpacity style={styles.actionButton} onPress={centerOnMyLocation} activeOpacity={0.7}>
+          <LinearGradient
+            colors={['#3B82F6', '#2563EB']}
+            style={styles.buttonGradient}
+          >
+            <Text style={styles.buttonIcon}>🎯</Text>
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowAlertModal(true)}
-      >
-        <Text style={styles.fabText}>🚨</Text>
-      </TouchableOpacity>
+      <BlurView intensity={80} tint="dark" style={styles.infoCard}>
+        <View style={styles.infoContent}>
+          <View style={styles.infoBadge}>
+            <Text style={styles.infoBadgeText}>{users.length}</Text>
+          </View>
+          <Text style={styles.infoText}>
+            {users.length === 1 ? "pessoa online" : "pessoas online"}
+          </Text>
+        </View>
+      </BlurView>
+
+      <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={animateFabPress}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={['#EF4444', '#DC2626']}
+            style={styles.fabGradient}
+          >
+            <Text style={styles.fabIcon}>🚨</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
 
       <Modal
         visible={showAlertModal}
@@ -277,28 +329,41 @@ export default function MapScreen() {
         onRequestClose={() => setShowAlertModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Enviar Alerta</Text>
+          <BlurView intensity={90} tint="dark" style={styles.modalBlur}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Enviar Alerta</Text>
+                <Text style={styles.modalSubtitle}>Escolha o tipo de alerta para enviar</Text>
+              </View>
 
-            {ALERT_OPTIONS.map((option) => (
+              {ALERT_OPTIONS.map((option, index) => (
+                <TouchableOpacity
+                  key={option.type}
+                  style={[styles.alertButton, { marginBottom: index === ALERT_OPTIONS.length - 1 ? 0 : 12 }]}
+                  onPress={() => handleSendAlert(option.type)}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={[option.color, option.color + 'CC']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.alertButtonGradient}
+                  >
+                    <Text style={styles.alertEmoji}>{option.emoji}</Text>
+                    <Text style={styles.alertButtonText}>{option.label}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+
               <TouchableOpacity
-                key={option.type}
-                style={styles.alertButton}
-                onPress={() => handleSendAlert(option.type)}
+                style={styles.cancelButton}
+                onPress={() => setShowAlertModal(false)}
+                activeOpacity={0.7}
               >
-                <Text style={styles.alertButtonText}>
-                  {option.emoji} {option.label}
-                </Text>
+                <Text style={styles.cancelText}>Cancelar</Text>
               </TouchableOpacity>
-            ))}
-
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowAlertModal(false)}
-            >
-              <Text style={styles.cancelText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
+            </View>
+          </BlurView>
         </View>
       </Modal>
     </View>
@@ -312,114 +377,163 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  logoutButton: {
+  topBar: {
     position: "absolute",
     top: 50,
     left: 16,
-    backgroundColor: "#fff",
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  centerButton: {
-    position: "absolute",
-    top: 50,
     right: 16,
-    backgroundColor: "#fff",
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
-  buttonEmoji: {
-    fontSize: 24,
-  },
-  infoBar: {
-    position: "absolute",
-    bottom: 100,
-    left: 16,
-    right: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  infoText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  fab: {
-    position: "absolute",
-    bottom: 30,
-    right: 20,
-    backgroundColor: "#FF3B30",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
+  actionButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowRadius: 8,
     elevation: 8,
   },
-  fabText: {
-    fontSize: 28,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  buttonGradient: {
+    width: "100%",
+    height: "100%",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalContent: {
-    backgroundColor: "#fff",
+  buttonIcon: {
+    fontSize: 24,
+  },
+  infoCard: {
+    position: "absolute",
+    bottom: 120,
+    left: 16,
+    right: 16,
     borderRadius: 20,
-    padding: 20,
-    width: "85%",
-    maxWidth: 350,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
-    color: "#333",
-  },
-  alertButton: {
-    backgroundColor: "#FF3B30",
-    paddingVertical: 15,
-    borderRadius: 10,
+  infoContent: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
-  alertButtonText: {
+  infoBadge: {
+    backgroundColor: "#8B5CF6",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  infoBadgeText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  infoText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  fabContainer: {
+    position: "absolute",
+    bottom: 32,
+    right: 20,
+  },
+  fab: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    overflow: "hidden",
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  fabGradient: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fabIcon: {
+    fontSize: 32,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+  },
+  modalBlur: {
+    width: width * 0.9,
+    maxWidth: 380,
+    borderRadius: 28,
+    overflow: "hidden",
+  },
+  modalContent: {
+    padding: 24,
+  },
+  modalHeader: {
+    marginBottom: 24,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#fff",
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.7)",
+    fontWeight: "500",
+  },
+  alertButton: {
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  alertButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  alertEmoji: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  alertButtonText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   cancelButton: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 16,
   },
   cancelText: {
-    color: "#666",
-    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 17,
+    fontWeight: "600",
   },
 });

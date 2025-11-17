@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "LocalApp",
-    "slug": "LocalApp",
+    "name": "Trackat",
+    "slug": "Trackat",
     "version": "1.0.0",
     "extra": {
       "eas": {
@@ -10,11 +10,11 @@
     },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "localapp",
+    "scheme": "trackat",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.localapp",
+      "bundleIdentifier": "com.yourcompany.trackat",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para mostrar no mapa em tempo real",
         "NSLocationAlwaysUsageDescription": "Precisamos da sua localização para rastreamento contínuo"
@@ -27,7 +27,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "package": "com.yourcompany.localapp",
+      "package": "com.yourcompany.trackat",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -58,7 +58,7 @@
       "icon": "./assets/images/icon.png",
       "color": "#007AFF",
       "androidMode": "default",
-      "androidCollapsedTitle": "LocalApp"
+      "androidCollapsedTitle": "Trackat"
     }
   }
 }
