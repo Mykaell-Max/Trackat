@@ -13,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 import Loading from "../components/Loading";
 import UserFloatingLabel from "../components/UserFloatingLabel";
@@ -33,13 +35,14 @@ import {
 import { listenToAllUsers, UserData } from "../services/usersService";
 const { width } = Dimensions.get('window');
 const ALERT_OPTIONS: { type: AlertType; label: string; emoji: string; color: string }[] = [
-  { type: "ajuda", label: "Preciso de ajuda", emoji: "🆘", color: "#F59E0B" },
-  { type: "bora beber", label: "Bora beber", emoji: "🍻", color: "#10B981" },
-  { type: "socorro", label: "Socorro! Emergência", emoji: "🚨", color: "#EF4444" },
-  { type: "venham aqui", label: "Venham aqui", emoji: "📍", color: "#8B5CF6" },
+  { type: "ajuda", label: "Preciso de ajuda", emoji: "", color: "#6366F1" },
+  { type: "bora beber", label: "Bora beber", emoji: "", color: "#64748B" },
+  { type: "socorro", label: "Socorro! Emergência", emoji: "", color: "#EF4444" },
+  { type: "venham aqui", label: "Venham aqui", emoji: "", color: "#8B5CF6" },
 ];
 
 export default function MapScreen() {
+    const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -223,7 +226,26 @@ export default function MapScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}> 
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleLogout} activeOpacity={0.7}>
+          <LinearGradient
+            colors={["#64748B", "#6366F1"]}
+            style={styles.buttonGradient}
+          >
+            <Text style={styles.buttonIcon}>Sair</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={centerOnMyLocation} activeOpacity={0.7}>
+          <LinearGradient
+            colors={["#6366F1", "#64748B"]}
+            style={styles.buttonGradient}
+          >
+            <Text style={styles.buttonIcon}>Localizar</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
       <MapView
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
@@ -283,32 +305,32 @@ export default function MapScreen() {
           {/* Informações fixas do usuário */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
             <View style={styles.avatarCircle}>
-              <Text style={{ fontSize: 28, color: '#fff', fontWeight: 'bold' }}>
+              <Text style={{ fontSize: 24, color: '#fff', fontWeight: '600', fontFamily: 'Roboto' }}>
                 {selectedUser.username ? selectedUser.username[0].toUpperCase() : 'U'}
               </Text>
             </View>
             <View style={{ marginLeft: 14 }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#8B5CF6' }}>
+              <Text style={{ fontWeight: '600', fontSize: 18, color: '#6366F1', fontFamily: 'Roboto' }}>
                 {selectedUser.username || selectedUser.email?.split("@")[0] || "Usuário"}
               </Text>
-              <Text style={{ color: '#555', fontSize: 14 }}>{selectedUser.email}</Text>
+              <Text style={{ color: '#64748B', fontSize: 13 }}>{selectedUser.email}</Text>
             </View>
           </View>
-          <Text style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>UID: {selectedUser.uid}</Text>
-          <Text style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
+          <Text style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>UID: {selectedUser.uid}</Text>
+          <Text style={{ fontSize: 12, color: '#94A3B8', marginBottom: 8 }}>
             Última atualização: {selectedUser.updatedAt ? new Date(selectedUser.updatedAt).toLocaleString() : 'Desconhecido'}
           </Text>
           {/* Só os alertas são scrolláveis */}
-          <Text style={{ fontWeight: 'bold', fontSize: 15, marginBottom: 4 }}>Alertas recentes:</Text>
+          <Text style={{ fontWeight: '600', fontSize: 14, marginBottom: 4, color: '#6366F1' }}>Alertas recentes:</Text>
           <View style={{ flex: 1, maxHeight: 180, marginBottom: 10 }}>
             <ScrollView contentContainerStyle={{ paddingBottom: 10 }}>
               {recentAlerts.length === 0 ? (
-                <Text style={{ color: '#888', fontSize: 13 }}>Nenhum alerta recente.</Text>
+                <Text style={{ color: '#94A3B8', fontSize: 12 }}>Nenhum alerta recente.</Text>
               ) : (
                 recentAlerts.map(alert => (
-                  <View key={alert.id} style={{ marginBottom: 6, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 8 }}>
-                    <Text style={{ fontWeight: 'bold', color: '#8B5CF6' }}>{alert.message}</Text>
-                    <Text style={{ color: '#555', fontSize: 12 }}>Em: {new Date(alert.createdAt).toLocaleString()}</Text>
+                  <View key={alert.id} style={{ marginBottom: 6, padding: 8, backgroundColor: '#F1F5F9', borderRadius: 8 }}>
+                    <Text style={{ fontWeight: '600', color: '#6366F1', fontSize: 13 }}>{alert.message}</Text>
+                    <Text style={{ color: '#64748B', fontSize: 11 }}>Em: {new Date(alert.createdAt).toLocaleString()}</Text>
                   </View>
                 ))
               )}
@@ -316,54 +338,25 @@ export default function MapScreen() {
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedUser(null)}>
-              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>Fechar</Text>
+              <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14, fontFamily: 'Roboto' }}>Fechar</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      <View style={styles.topBar}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleLogout} activeOpacity={0.7}>
-          <LinearGradient
-            colors={['#F43F5E', '#E11D48']}
-            style={styles.buttonGradient}
-          >
-            <Text style={styles.buttonIcon}>🚪</Text>
-          </LinearGradient>
-        </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={centerOnMyLocation} activeOpacity={0.7}>
-          <LinearGradient
-            colors={['#3B82F6', '#2563EB']}
-            style={styles.buttonGradient}
-          >
-            <Text style={styles.buttonIcon}>🎯</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-
-      <BlurView intensity={80} tint="dark" style={styles.infoCard}>
-        <View style={styles.infoContent}>
-          <View style={styles.infoBadge}>
-            <Text style={styles.infoBadgeText}>{users.length}</Text>
-          </View>
-          <Text style={styles.infoText}>
-            {users.length === 1 ? "pessoa online" : "pessoas online"}
-          </Text>
-        </View>
-      </BlurView>
-
-      <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}>
+      {/* Card de pessoas online removido */}
+      <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}> 
         <TouchableOpacity
           style={styles.fab}
           onPress={animateFabPress}
           activeOpacity={0.9}
         >
           <LinearGradient
-            colors={['#EF4444', '#DC2626']}
+            colors={["#6366F1", "#64748B"]}
             style={styles.fabGradient}
           >
-            <Text style={styles.fabIcon}>🚨</Text>
+            <Text style={styles.fabIcon}>Alerta</Text>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
@@ -395,7 +388,6 @@ export default function MapScreen() {
                     end={{ x: 1, y: 0 }}
                     style={styles.alertButtonGradient}
                   >
-                    <Text style={styles.alertEmoji}>{option.emoji}</Text>
                     <Text style={styles.alertButtonText}>{option.label}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -412,7 +404,7 @@ export default function MapScreen() {
           </BlurView>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -455,17 +447,17 @@ const styles = StyleSheet.create({
     },
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   map: {
     flex: 1,
   },
   topBar: {
-    position: "absolute",
-    top: 50,
-    left: 16,
-    right: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    height: 60,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   actionButton: {
     width: 56,
@@ -618,4 +610,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
   },
+  
 });
