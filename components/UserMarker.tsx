@@ -5,15 +5,16 @@ import { UserData } from "../services/usersService";
 interface UserMarkerProps {
   user: UserData;
   isCurrentUser?: boolean;
+  onPress?: (user: UserData) => void;
 }
 
-export default function UserMarker({ user, isCurrentUser = false }: UserMarkerProps) {
+const UserMarker: React.FC<UserMarkerProps> = ({ user, isCurrentUser = false, onPress }) => {
   if (!user.coords) {
     return null;
   }
 
-  const displayName = isCurrentUser 
-    ? "Você" 
+  const displayName = isCurrentUser
+    ? "Você"
     : (user.username || user.email?.split("@")[0] || "Usuário");
 
   return (
@@ -24,6 +25,14 @@ export default function UserMarker({ user, isCurrentUser = false }: UserMarkerPr
       }}
       title={displayName}
       pinColor={isCurrentUser ? "blue" : "red"}
-    />
+      onPress={() => {
+        if (onPress) {
+          console.log('UserMarker clicado:', user);
+          onPress(user);
+        }
+      }}
+    />    
   );
-}
+};
+
+export default UserMarker;

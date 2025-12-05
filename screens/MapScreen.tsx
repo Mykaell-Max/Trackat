@@ -1,27 +1,28 @@
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { signOut } from "firebase/auth";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
+  Dimensions,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Animated,
-  Dimensions,
 } from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import Loading from "../components/Loading";
+import UserFloatingLabel from "../components/UserFloatingLabel";
 import UserMarker from "../components/UserMarker";
 import { auth } from "../firebase";
 import {
-  AlertType,
-  listenToAlerts,
+  AlertType, fetchRecentAlertsByUser, listenToAlerts,
   requestNotificationPermission,
   sendAlert,
-  setupNotificationHandler,
+  setupNotificationHandler, Alert as UserAlert
 } from "../services/alertsService";
 import {
   getCurrentLocation,
@@ -30,9 +31,7 @@ import {
   stopLocationTracking,
 } from "../services/locationService";
 import { listenToAllUsers, UserData } from "../services/usersService";
-
 const { width } = Dimensions.get('window');
-
 const ALERT_OPTIONS: { type: AlertType; label: string; emoji: string; color: string }[] = [
   { type: "ajuda", label: "Preciso de ajuda", emoji: "🆘", color: "#F59E0B" },
   { type: "bora beber", label: "Bora beber", emoji: "🍻", color: "#10B981" },
@@ -49,7 +48,19 @@ export default function MapScreen() {
     longitude: number;
   } | null>(null);
   const [userPositions, setUserPositions] = useState<Record<string, { x: number; y: number }>>({});
-
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [recentAlerts, setRecentAlerts] = useState<UserAlert[]>([]);
+  const handleUserPress = (user: UserData) => {
+    console.log("USER CLICKED:", user);
+    setSelectedUser(user);
+  };
+  useEffect(() => {
+    if (selectedUser) {
+      fetchRecentAlertsByUser(selectedUser.uid, 5).then(setRecentAlerts);
+    } else {
+      setRecentAlerts([]);
+    }
+  }, [selectedUser]);
   const mapRef = useRef<MapView>(null);
   const stopTrackingRef = useRef<(() => void) | null>(null);
   const unsubscribeUsersRef = useRef<(() => void) | null>(null);
@@ -239,42 +250,77 @@ export default function MapScreen() {
         ))}
       </MapView>
 
-      {users.map((user) => {
+      {users.map(user => {
         const position = userPositions[user.uid];
         if (!position) return null;
-        
-        const isCurrentUser = user.uid === auth.currentUser?.uid;
-        const displayName = isCurrentUser 
-          ? "Você" 
-          : (user.username || user.email?.split("@")[0] || "Usuário");
-        
         return (
-          <View
-            key={`label-${user.uid}`}
-            style={{
-              position: "absolute",
-              left: position.x - 40,
-              top: position.y,
-              backgroundColor: isCurrentUser ? "#8B5CF6" : "#EC4899",
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 12,
-              borderWidth: 2,
-              borderColor: "#fff",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.3,
-              shadowRadius: 5,
-              elevation: 6,
-            }}
-            pointerEvents="none"
-          >
-            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700", letterSpacing: 0.3 }}>
-              {displayName}
-            </Text>
-          </View>
+          <UserFloatingLabel
+            key={user.uid}
+            user={user}
+            position={position}
+            onPress={handleUserPress}
+            isCurrentUser={user.uid === auth.currentUser?.uid}
+          />
         );
       })}
+
+      {/* Card de informações do usuário selecionado */}
+      {selectedUser && (
+        <View style={[
+          styles.userInfoCard,
+          {
+            position: 'absolute',
+            left: 24,
+            right: 24,
+            top: '50%',
+            transform: [{ translateY: -210 }],
+            zIndex: 10,
+            maxHeight: 420,
+            padding: 22,
+            justifyContent: 'flex-start',
+          }
+        ]}>
+          {/* Informações fixas do usuário */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <View style={styles.avatarCircle}>
+              <Text style={{ fontSize: 28, color: '#fff', fontWeight: 'bold' }}>
+                {selectedUser.username ? selectedUser.username[0].toUpperCase() : 'U'}
+              </Text>
+            </View>
+            <View style={{ marginLeft: 14 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#8B5CF6' }}>
+                {selectedUser.username || selectedUser.email?.split("@")[0] || "Usuário"}
+              </Text>
+              <Text style={{ color: '#555', fontSize: 14 }}>{selectedUser.email}</Text>
+            </View>
+          </View>
+          <Text style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>UID: {selectedUser.uid}</Text>
+          <Text style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
+            Última atualização: {selectedUser.updatedAt ? new Date(selectedUser.updatedAt).toLocaleString() : 'Desconhecido'}
+          </Text>
+          {/* Só os alertas são scrolláveis */}
+          <Text style={{ fontWeight: 'bold', fontSize: 15, marginBottom: 4 }}>Alertas recentes:</Text>
+          <View style={{ flex: 1, maxHeight: 180, marginBottom: 10 }}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 10 }}>
+              {recentAlerts.length === 0 ? (
+                <Text style={{ color: '#888', fontSize: 13 }}>Nenhum alerta recente.</Text>
+              ) : (
+                recentAlerts.map(alert => (
+                  <View key={alert.id} style={{ marginBottom: 6, padding: 8, backgroundColor: '#F3F4F6', borderRadius: 8 }}>
+                    <Text style={{ fontWeight: 'bold', color: '#8B5CF6' }}>{alert.message}</Text>
+                    <Text style={{ color: '#555', fontSize: 12 }}>Em: {new Date(alert.createdAt).toLocaleString()}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedUser(null)}>
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.actionButton} onPress={handleLogout} activeOpacity={0.7}>
@@ -371,6 +417,42 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
+    userInfoCard: {
+      backgroundColor: '#fff',
+      borderRadius: 22,
+      padding: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.13,
+      shadowRadius: 12,
+      elevation: 10,
+    },
+    avatarCircle: {
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      backgroundColor: '#8B5CF6',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.18,
+      shadowRadius: 6,
+      elevation: 6,
+    },
+    closeButton: {
+      marginTop: 10,
+      alignSelf: 'flex-end',
+      backgroundColor: '#EF4444',
+      paddingHorizontal: 18,
+      paddingVertical: 8,
+      borderRadius: 8,
+      shadowColor: '#EF4444',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.18,
+      shadowRadius: 4,
+      elevation: 4,
+    },
   container: {
     flex: 1,
   },
