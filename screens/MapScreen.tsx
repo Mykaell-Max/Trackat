@@ -7,15 +7,17 @@ import {
   Animated,
   Dimensions,
   Modal,
+  StatusBar as RNStatusBar,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
+import * as NavigationBar from 'expo-navigation-bar';
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import Loading from "../components/Loading";
 import UserFloatingLabel from "../components/UserFloatingLabel";
 import UserMarker from "../components/UserMarker";
@@ -33,6 +35,7 @@ import {
   stopLocationTracking,
 } from "../services/locationService";
 import { listenToAllUsers, UserData } from "../services/usersService";
+
 const { width } = Dimensions.get('window');
 const ALERT_OPTIONS: { type: AlertType; label: string; emoji: string; color: string }[] = [
   { type: "ajuda", label: "Preciso de ajuda", emoji: "", color: "#6366F1" },
@@ -43,6 +46,11 @@ const ALERT_OPTIONS: { type: AlertType; label: string; emoji: string; color: str
 
 export default function MapScreen() {
     const insets = useSafeAreaInsets();
+    useEffect(() => {
+      
+      NavigationBar.setBackgroundColorAsync('#000000'); 
+      NavigationBar.setButtonStyleAsync('light');        
+    }, []);
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -65,6 +73,7 @@ export default function MapScreen() {
     }
   }, [selectedUser]);
   const mapRef = useRef<MapView>(null);
+  const [mapLayout, setMapLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const stopTrackingRef = useRef<(() => void) | null>(null);
   const unsubscribeUsersRef = useRef<(() => void) | null>(null);
   const unsubscribeAlertsRef = useRef<(() => void) | null>(null);
@@ -82,7 +91,10 @@ export default function MapScreen() {
             latitude: user.coords.latitude,
             longitude: user.coords.longitude,
           });
-          positions[user.uid] = { x: point.x, y: point.y - 35 };
+          // point is relative to the MapView; convert to parent/screen coords by adding map layout offset
+          const offsetX = mapLayout ? mapLayout.x : 0;
+          const offsetY = mapLayout ? mapLayout.y : 0;
+          positions[user.uid] = { x: point.x + offsetX, y: point.y + offsetY };
         } catch (error) {
           // Silent error
         }
@@ -94,7 +106,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     updateUserPositions();
-  }, [users]);
+  }, [users, mapLayout]);
 
   useEffect(() => {
     initializeMap();
@@ -226,23 +238,24 @@ export default function MapScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}> 
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}> 
+      <RNStatusBar barStyle="light-content" backgroundColor="#000000" />
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleLogout} activeOpacity={0.7}>
-          <LinearGradient
-            colors={["#64748B", "#6366F1"]}
-            style={styles.buttonGradient}
-          >
+        <TouchableOpacity style={styles.actionButton} onPress={handleLogout} activeOpacity={0.8}>
+          <LinearGradient colors={["#EF4444", "#DC2626"]} style={styles.actionInner}>
             <Text style={styles.buttonIcon}>Sair</Text>
           </LinearGradient>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={centerOnMyLocation} activeOpacity={0.7}>
-          <LinearGradient
-            colors={["#6366F1", "#64748B"]}
-            style={styles.buttonGradient}
-          >
+        <TouchableOpacity style={styles.actionButton} onPress={centerOnMyLocation} activeOpacity={0.8}>
+          <LinearGradient colors={["#06B6D4", "#3B82F6"]} style={styles.actionInner}>
             <Text style={styles.buttonIcon}>Localizar</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={animateFabPress} activeOpacity={0.9}>
+          <LinearGradient colors={["#FB923C", "#F97316"]} style={styles.actionInnerAlert}>
+            <Text style={[styles.alertText, { color: '#fff' }]}>Alerta</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -259,9 +272,10 @@ export default function MapScreen() {
               }
             : undefined
         }
-        showsUserLocation
+        showsUserLocation={false}
         showsMyLocationButton={false}
         onRegionChange={updateUserPositions}
+        onLayout={(e) => setMapLayout(e.nativeEvent.layout)}
       >
         {users.map((user) => (
           <UserMarker
@@ -270,6 +284,19 @@ export default function MapScreen() {
             isCurrentUser={user.uid === auth.currentUser?.uid}
           />
         ))}
+        {/* custom current-user dot */}
+        {myLocation && (
+          <Marker
+            coordinate={myLocation}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+            zIndex={999}
+          >
+            <View style={styles.myDotOuter} pointerEvents="none">
+              <View style={styles.myDotInner} />
+            </View>
+          </Marker>
+        )}
       </MapView>
 
       {users.map(user => {
@@ -343,23 +370,6 @@ export default function MapScreen() {
           </View>
         </View>
       )}
-
-
-      {/* Card de pessoas online removido */}
-      <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabScale }] }]}> 
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={animateFabPress}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={["#6366F1", "#64748B"]}
-            style={styles.fabGradient}
-          >
-            <Text style={styles.fabIcon}>Alerta</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
 
       <Modal
         visible={showAlertModal}
@@ -447,7 +457,7 @@ const styles = StyleSheet.create({
     },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#000000ff',
   },
   map: {
     flex: 1,
@@ -455,20 +465,21 @@ const styles = StyleSheet.create({
   topBar: {
     height: 60,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   actionButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 110,
+    height: 44,
+    borderRadius: 12,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    marginHorizontal: 8,
   },
   buttonGradient: {
     width: "100%",
@@ -476,8 +487,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  actionInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  actionInnerAlert: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  alertText: {
+    color: '#7F1D1D',
+    fontWeight: '700',
+    fontSize: 16,
+  },
   buttonIcon: {
-    fontSize: 24,
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '700',
   },
   infoCard: {
     position: "absolute",
@@ -526,7 +558,7 @@ const styles = StyleSheet.create({
   fab: {
     width: 68,
     height: 68,
-    borderRadius: 34,
+    borderRadius: 0,
     overflow: "hidden",
     shadowColor: "#EF4444",
     shadowOffset: { width: 0, height: 6 },
@@ -540,8 +572,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  myDotOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    backgroundColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  myDotInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#3B82F6',
+  },
   fabIcon: {
-    fontSize: 32,
+    fontSize: 20,
   },
   modalOverlay: {
     flex: 1,
