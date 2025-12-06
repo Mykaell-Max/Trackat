@@ -1,6 +1,21 @@
 import * as Notifications from "expo-notifications";
-import { addDoc, collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import { addDoc, collection, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { db } from "../firebase";
+export const fetchRecentAlertsByUser = async (userId: string, max: number = 5): Promise<Alert[]> => {
+  try {
+    const q = query(
+      collection(db, "alerts"),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc"),
+      limit(max)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Alert));
+  } catch (error) {
+    console.error("Erro ao buscar alertas recentes:", error);
+    return [];
+  }
+};
 
 export type AlertType = "ajuda" | "bora beber" | "socorro" | "venham aqui";
 
